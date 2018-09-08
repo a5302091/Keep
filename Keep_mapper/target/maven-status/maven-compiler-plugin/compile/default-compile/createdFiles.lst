@@ -1,0 +1,8 @@
+com\keep\mapper\BgmMapper.class
+com\keep\mapper\UsersFansMapper.class
+com\keep\mapper\CommentsMapper.class
+com\keep\mapper\UsersMapper.class
+com\keep\mapper\SearchRecordsMapper.class
+com\keep\mapper\UsersReportMapper.class
+com\keep\mapper\VideosMapper.class
+com\keep\mapper\UsersLikeVideosMapper.class
