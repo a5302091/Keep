@@ -30,4 +30,12 @@ public class BgmServiceImpl implements BgmService {
     public List<Bgm> queryBgmList() {
         return bgmMapper.selectAll();
     }
+
+    //根据bgmId查询bgm
+    @Override
+    public Bgm queryBgm(String bgmId) {
+        return  bgmMapper.selectByPrimaryKey(bgmId);
+    }
+
+
 }
