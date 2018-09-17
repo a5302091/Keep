@@ -9,9 +9,9 @@ import javax.persistence.Id;
 
 @ApiModel(value = "用户对象",description = "相关用户对象")
 public class UsersVo {
-    @Id
-    @ApiModelProperty(hidden = true)
     private String id;
+
+    private boolean isFollow;
 
     public String getUserToken() {
         return userToken;
@@ -21,26 +21,22 @@ public class UsersVo {
         this.userToken = userToken;
     }
 
-    @ApiModelProperty(hidden = true)
     private String userToken;
 
     /**
      * 用户名
      */
-    @ApiModelProperty(value = "这是用户名",name = "username",example = "keepUserName",required = true)
     private String username;
 
     /**
      * 密码
      */
-    @ApiModelProperty(value = "这是密码",name = "pwd",example = "123456",required = true)
     @JsonIgnore
     private String password;
 
     /**
      * 我的头像，如果没有默认给一张
      */
-    @ApiModelProperty(hidden = true)
     private String faceImage;
 
     /**
@@ -51,7 +47,6 @@ public class UsersVo {
     /**
      * 我的粉丝数量
      */
-    @ApiModelProperty(hidden = true)
     private Integer fansCounts;
 
     /**
@@ -60,10 +55,17 @@ public class UsersVo {
     @ApiModelProperty(hidden = true)
     private Integer followCounts;
 
+    public boolean isFollow() {
+        return isFollow;
+    }
+
+    public void setFollow(boolean follow) {
+        isFollow = follow;
+    }
+
     /**
      * 我接受到的赞美/收藏 的数量
      */
-    @ApiModelProperty(hidden = true)
     private Integer receiveLikeCounts;
 
     /**

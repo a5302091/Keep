@@ -10,10 +10,7 @@ import io.swagger.annotations.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -38,63 +35,78 @@ public class VideoController {
     /**
      * 用户视频上传
      */
-    @ApiOperation(value = "用户上传视频的接口", notes = "用户上传视频的接口")
+    @ApiOperation(value = "上传视频", notes = "上传视频的接口")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "userId", value = "用户ID", required = true, dataType = "String", paramType = "form"),
-            @ApiImplicitParam(name = "bgmId", value = "bgmID", required = false, dataType = "String", paramType = "form"),
-            @ApiImplicitParam(name = "videoSeconds", value = "背景音乐播放长度", required = true, dataType = "String", paramType = "form"),
-            @ApiImplicitParam(name = "videoWidth", value = "视频宽度", required = true, dataType = "String", paramType = "form"),
-            @ApiImplicitParam(name = "videoHeight", value = "视频高度", required = true, dataType = "String", paramType = "form"),
-            @ApiImplicitParam(name = "desc", value = "视频描述", required = false, dataType = "String", paramType = "form")
-
+            @ApiImplicitParam(name = "userId", value = "用户id", required = true,
+                    dataType = "String", paramType = "form"),
+            @ApiImplicitParam(name = "bgmId", value = "背景音乐id", required = false,
+                    dataType = "String", paramType = "form"),
+            @ApiImplicitParam(name = "videoSeconds", value = "背景音乐播放长度", required = true,
+                    dataType = "String", paramType = "form"),
+            @ApiImplicitParam(name = "videoWidth", value = "视频宽度", required = true,
+                    dataType = "String", paramType = "form"),
+            @ApiImplicitParam(name = "videoHeight", value = "视频高度", required = true,
+                    dataType = "String", paramType = "form"),
+            @ApiImplicitParam(name = "desc", value = "视频描述", required = false,
+                    dataType = "String", paramType = "form")
     })
-
     @PostMapping(value = "/upload", headers = "content-type=multipart/form-data")
-    public KeepJSONResult upload(String userId, String bgmId,
-                                 double videoSeconds, int videoWidth,
-                                 int videoHeight, String desc,
-                                 @ApiParam(value = "小视频", required = true)
+    public KeepJSONResult upload(String userId,
+                                 String bgmId, double videoSeconds,
+                                 int videoWidth, int videoHeight,
+                                 String desc,
+                                 @ApiParam(value = "短视频", required = true)
                                          MultipartFile file) throws Exception {
 
         if (StringUtils.isBlank(userId)) {
-            return KeepJSONResult.errorMsg("未获取到userId");
+            return KeepJSONResult.errorMsg("用户id不能为空...");
         }
 
-        //保存至数据库中的路径
+        // 保存到数据库中的相对路径
         String uploadPathDB = "/" + userId + "/video";
-        //封面保存路径
         String coverPathDB = "/" + userId + "/video";
+
         FileOutputStream fileOutputStream = null;
         InputStream inputStream = null;
-        //文件最终的保存地址
-        String Path = "";
+        // 文件上传的最终保存路径
+        String finalVideoPath = "";
         try {
             if (file != null) {
-                String fileName = file.getOriginalFilename();
-                String coverPrefix = fileName.split("\\.")[0];
-                if (StringUtils.isNotBlank(fileName)) {
-                    //文件最终的保存地址
-                    Path = Const.FILE_SPACE + uploadPathDB + "/" + fileName;
-                    //数据库的保存路径
-                    uploadPathDB += ("/" + fileName);
-                    //封面保存的路径
-                    coverPathDB = coverPathDB + "/" + coverPrefix + ".jpg";
 
-                    File outfile = new File(Path);
-                    if (outfile.getParentFile() != null || outfile.getParentFile().isDirectory()) {
-                        //创建父类文件夹
-                        outfile.getParentFile().mkdirs();
+                String fileName = file.getOriginalFilename();
+                // abc.mp4
+                String arrayFilenameItem[] = fileName.split("\\.");
+                String fileNamePrefix = "";
+                for (int i = 0; i < arrayFilenameItem.length - 1; i++) {
+                    fileNamePrefix += arrayFilenameItem[i];
+                }
+                // fix bug: 解决小程序端OK，PC端不OK的bug，原因：PC端和小程序端对临时视频的命名不同
+//				String fileNamePrefix = fileName.split("\\.")[0];
+
+                if (StringUtils.isNotBlank(fileName)) {
+
+                    finalVideoPath = Const.FILE_SPACE + uploadPathDB + "/" + fileName;
+                    // 设置数据库保存的路径
+                    uploadPathDB += ("/" + fileName);
+                    coverPathDB = coverPathDB + "/" + fileNamePrefix + ".jpg";
+
+                    File outFile = new File(finalVideoPath);
+                    if (outFile.getParentFile() != null || !outFile.getParentFile().isDirectory()) {
+                        // 创建父文件夹
+                        outFile.getParentFile().mkdirs();
                     }
-                    fileOutputStream = new FileOutputStream(outfile);
+
+                    fileOutputStream = new FileOutputStream(outFile);
                     inputStream = file.getInputStream();
                     IOUtils.copy(inputStream, fileOutputStream);
                 }
+
             } else {
-                return KeepJSONResult.errorMsg("未获取到userId");
+                return KeepJSONResult.errorMsg("上传出错...");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return KeepJSONResult.errorMsg("上传失败");
+            return KeepJSONResult.errorMsg("上传出错...");
         } finally {
             if (fileOutputStream != null) {
                 fileOutputStream.flush();
@@ -102,47 +114,45 @@ public class VideoController {
             }
         }
 
-        //判断BGMID是否为空 如果不为空 就查询bgm信息,合成视频
+        // 判断bgmId是否为空，如果不为空，
+        // 那就查询bgm的信息，并且合并视频，生产新的视频
         if (StringUtils.isNotBlank(bgmId)) {
             Bgm bgm = bgmService.queryBgm(bgmId);
             String mp3InputPath = Const.FILE_SPACE + bgm.getPath();
 
-            MergeVideoMp3 mergeVideoMp3 = new MergeVideoMp3(Const.FLEX_EXE);
-            String videoInputPath = Path;
+            MergeVideoMp3 tool = new MergeVideoMp3(Const.FLEX_EXE);
+            String videoInputPath = finalVideoPath;
 
             String videoOutputName = UUID.randomUUID().toString() + ".mp4";
             uploadPathDB = "/" + userId + "/video" + "/" + videoOutputName;
-            Path = Const.FILE_SPACE + uploadPathDB;
-            mergeVideoMp3.convertor(videoInputPath, mp3InputPath, videoSeconds, Path);
+            finalVideoPath = Const.FILE_SPACE + uploadPathDB;
+            tool.convertor(videoInputPath, mp3InputPath, videoSeconds, finalVideoPath);
         }
-        System.out.print("uploadPathDB=" + uploadPathDB);
-        System.out.print("Path=" + Path);
+        System.out.println("uploadPathDB=" + uploadPathDB);
+        System.out.println("finalVideoPath=" + finalVideoPath);
 
-        //对视频进行封面截图
-        MergeVideoMp3 ffmpeg = new MergeVideoMp3(Const.FLEX_EXE);
-        ffmpeg.convertorTP(Path, Const.FILE_SPACE + coverPathDB);
+        // 对视频进行截图
+        FetchVideoCover videoInfo = new FetchVideoCover(Const.FLEX_EXE);
+        videoInfo.getCover(finalVideoPath, Const.FILE_SPACE + coverPathDB);
 
+        // 保存视频信息到数据库
         Videos video = new Videos();
         video.setAudioId(bgmId);
         video.setUserId(userId);
         video.setVideoSeconds((float) videoSeconds);
         video.setVideoHeight(videoHeight);
         video.setVideoWidth(videoWidth);
-        video.setCoverPath(coverPathDB);
         video.setVideoDesc(desc);
         video.setVideoPath(uploadPathDB);
+        video.setCoverPath(coverPathDB);
         video.setStatus(VideoStatusEnum.SUCCESS.value);
         video.setCreateTime(new Date());
 
         String videoId = videoService.saveVideo(video);
 
-
         return KeepJSONResult.ok(videoId);
     }
 
-    /**
-     * 上传视频封面
-     */
     @ApiOperation(value = "上传封面", notes = "上传封面的接口")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "userId", value = "用户id", required = true,
@@ -211,11 +221,34 @@ public class VideoController {
 
     //分页查询视频列表
     @PostMapping("/showAll")
-    public KeepJSONResult showAll(@RequestParam(value = "page", defaultValue = "1") int page,
-                                  @RequestParam(value = "pageSize", defaultValue = "5") int pageSize) {
+    public KeepJSONResult showAll(@RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "pageSize", defaultValue = "20") int pageSize, @RequestBody Videos video, Integer isSaveRecord) {
 
-        PagedResult allVideos = videoService.getAllVideos(page, pageSize);
+
+        PagedResult allVideos = videoService.getAllVideos(video, isSaveRecord, page, pageSize);
         return KeepJSONResult.ok(allVideos);
 
+    }
+
+    //搜索热门词语0.0.0.00000
+    //分页查询视频列表
+    @PostMapping("/hot")
+    public KeepJSONResult hot() {
+        return KeepJSONResult.ok(videoService.getHotAll());
+    }
+
+
+    //用户视频喜欢数量增加
+    @PostMapping("/userLike")
+    public KeepJSONResult userLike(String userId, String videoId, String videoCreaterId) {
+        videoService.userLikeVideo(userId, videoId, videoCreaterId);
+        return KeepJSONResult.ok();
+    }
+
+
+    //用户视频喜欢数量减少
+    @PostMapping("/userUnLike")
+    public KeepJSONResult userUnLike(String userId, String videoId, String videoCreaterId) {
+        videoService.userUnLikeVideo(userId, videoId, videoCreaterId);
+        return KeepJSONResult.ok();
     }
 }

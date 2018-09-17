@@ -1,5 +1,6 @@
 package com.keep.controller;
 
+import com.keep.Vo.PusherVideo;
 import com.keep.Vo.UsersVo;
 import com.keep.pojo.Users;
 import com.keep.service.UserService;
@@ -9,6 +10,7 @@ import com.keep.utils.MD5Utils;
 import com.keep.utils.RedisOperator;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,7 +31,7 @@ import java.util.UUID;
  */
 @RestController
 @Api(value = "用户相关接口", tags = {"注册,登录"})
-@RequestMapping("/user/")
+@RequestMapping("/user")
 public class UserController {
 
     @Autowired
@@ -72,7 +74,7 @@ public class UserController {
     //将用户session存入redis
     public UsersVo setRedissUser(Users users) {
         String userToken = java.util.UUID.randomUUID().toString();
-        redis.set(Const.USER_REDIS_SESSION + ":" + users.getId(), userToken, 1000 * 60 * 10);
+        redis.set(Const.USER_REDIS_SESSION + ":" + users.getId(), userToken, 100 * 60 * 10);
 
         UsersVo usersVo = new UsersVo();
         BeanUtils.copyProperties(users, usersVo);
@@ -182,15 +184,80 @@ public class UserController {
      * 用户信息查询
      */
     @ApiOperation(value = "用户信息查询", notes = "用户信息查询")
-    @ApiImplicitParam(name = "userId", value = "用户ID", required = true, dataType = "String", paramType = "query")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "userId", value = "用户ID", required = true, dataType = "String", paramType = "query"),
+            @ApiImplicitParam(name = "fanId", value = "关注者ID", required = true, dataType = "String", paramType = "query")
+    })
     @PostMapping("/query")
-    public KeepJSONResult query(String userId) throws Exception {
+    public KeepJSONResult query(String userId, String fanId) throws Exception {
 
         Users query = userService.query(userId);
         UsersVo usersVo = new UsersVo();
         BeanUtils.copyProperties(query, usersVo);
 
+
+        usersVo.setFollow(userService.queryIfFollow(userId, fanId));
+
         return KeepJSONResult.ok(usersVo);
+    }
+
+
+    /**
+     * 用户视频点赞信息查询
+     */
+    @ApiOperation(value = "当前登录用户是否给查看的视频点赞", notes = "当前登录用户是否给查看的视频点赞")
+    @PostMapping("/queryPublisher")
+    public KeepJSONResult queryPublisher(String loginUserId, String videoId, String publisherUserId) throws Exception {
+
+        if (StringUtils.isBlank(publisherUserId)) {
+            return KeepJSONResult.errorMsg("视频作者为空...");
+        }
+
+        //1.查询视频发布者信息
+        Users query = userService.query(publisherUserId);
+        UsersVo publisher = new UsersVo();
+        BeanUtils.copyProperties(query, publisher);
+
+        //2.查询当前登录用户对视频是否点赞
+        boolean userLikeVideo = userService.isUserLikeVideo(loginUserId, videoId);
+
+        PusherVideo pusherVideo = new PusherVideo();
+        pusherVideo.setPublisher(publisher);
+        pusherVideo.setUserLikeVideo(userLikeVideo);
+
+        return KeepJSONResult.ok(pusherVideo);
+    }
+
+    /**
+     * 用户获得的关注数和粉丝数量增加
+     */
+    @ApiOperation(value = "用户获得的关注数和粉丝数量增加", notes = "用户获得的关注数和粉丝数量增加")
+    @PostMapping("/beyourfans")
+    public KeepJSONResult beyourfans(String userId, String fanId) throws Exception {
+
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(fanId)) {
+            return KeepJSONResult.errorMsg("用户信息不存在...");
+        }
+
+        userService.saveUserFanRelation(userId, fanId);
+
+        return KeepJSONResult.ok("关注成功...");
+    }
+
+    /**
+     * 用户获得的关注数和粉丝数量减少
+     */
+    @ApiOperation(value = "用户获得的关注数和粉丝数量减少", notes = "用户获得的关注数和粉丝数量减少")
+    @PostMapping("/dontbeyourfans")
+    public KeepJSONResult dontbeyourfans(String userId, String fanId) throws Exception {
+
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(fanId)) {
+            return KeepJSONResult.errorMsg("用户信息不存在...");
+        }
+
+        userService.deleteUserFanRelation(userId, fanId);
+
+        return KeepJSONResult.ok("取消关注成功...");
     }
 
 }

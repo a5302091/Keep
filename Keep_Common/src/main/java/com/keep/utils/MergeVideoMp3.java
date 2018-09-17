@@ -74,7 +74,6 @@ public class MergeVideoMp3 {
 
 		command.add("-vframes");
 		command.add("1");
-
 		command.add(videoOutputPath);
 
 		for (String c : command) {
