@@ -44,7 +44,8 @@ public class KeepInterceptor implements HandlerInterceptor {
                 }
             }
         } else {
-                return true;
+            returnErrorResponse(response, new KeepJSONResult().errorTokenMsg("请先登录..."));
+                return false;
         }
 
 

@@ -14,5 +14,6 @@ public enum VideoStatusEnum {
 	public int getValue() {
 		return value;
 	}
+
 	
 }

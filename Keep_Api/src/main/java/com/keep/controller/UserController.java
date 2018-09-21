@@ -3,6 +3,7 @@ package com.keep.controller;
 import com.keep.Vo.PusherVideo;
 import com.keep.Vo.UsersVo;
 import com.keep.pojo.Users;
+import com.keep.pojo.UsersReport;
 import com.keep.service.UserService;
 import com.keep.utils.Const;
 import com.keep.utils.KeepJSONResult;
@@ -207,14 +208,14 @@ public class UserController {
      */
     @ApiOperation(value = "当前登录用户是否给查看的视频点赞", notes = "当前登录用户是否给查看的视频点赞")
     @PostMapping("/queryPublisher")
-    public KeepJSONResult queryPublisher(String loginUserId, String videoId, String publisherUserId) throws Exception {
+    public KeepJSONResult queryPublisher(String loginUserId, String videoId, String publisherId) throws Exception {
 
-        if (StringUtils.isBlank(publisherUserId)) {
+        if (StringUtils.isBlank(publisherId)) {
             return KeepJSONResult.errorMsg("视频作者为空...");
         }
 
         //1.查询视频发布者信息
-        Users query = userService.query(publisherUserId);
+        Users query = userService.query(publisherId);
         UsersVo publisher = new UsersVo();
         BeanUtils.copyProperties(query, publisher);
 
@@ -258,6 +259,19 @@ public class UserController {
         userService.deleteUserFanRelation(userId, fanId);
 
         return KeepJSONResult.ok("取消关注成功...");
+    }
+
+
+    /**
+     * 举报视频
+     */
+    @ApiOperation(value = "用户举报某个视频", notes = "用户举报某个视频")
+    @PostMapping("/reportUser")
+    public KeepJSONResult reportUser(@RequestBody UsersReport usersReport) throws Exception {
+
+        userService.reportUser(usersReport);
+
+        return KeepJSONResult.errorMsg("举报成功..");
     }
 
 }

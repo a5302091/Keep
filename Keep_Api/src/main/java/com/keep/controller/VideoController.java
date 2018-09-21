@@ -1,6 +1,7 @@
 package com.keep.controller;
 
 import com.keep.pojo.Bgm;
+import com.keep.pojo.Comments;
 import com.keep.pojo.Users;
 import com.keep.pojo.Videos;
 import com.keep.service.BgmService;
@@ -221,10 +222,35 @@ public class VideoController {
 
     //分页查询视频列表
     @PostMapping("/showAll")
-    public KeepJSONResult showAll(@RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "pageSize", defaultValue = "20") int pageSize, @RequestBody Videos video, Integer isSaveRecord) {
+    public KeepJSONResult showAll(@RequestBody Videos video, Integer isSaveRecord,
+                                  Integer page, Integer pageSize) {
 
+
+        if (page == null) {
+            page = 1;
+        }
+        if (pageSize == null) {
+            pageSize = Const.PAGE_SIZE;
+        }
 
         PagedResult allVideos = videoService.getAllVideos(video, isSaveRecord, page, pageSize);
+        return KeepJSONResult.ok(allVideos);
+
+    }
+
+    //根据用户id查询他发布的视频
+    @PostMapping("/myVideo")
+    public KeepJSONResult showAll(String userId, Integer page, Integer pageSize) {
+
+
+        if (page == null) {
+            page = 1;
+        }
+        if (pageSize == null) {
+            pageSize = Const.PAGE_SIZE;
+        }
+
+        PagedResult allVideos = videoService.queryUserIdVideo(userId, page, pageSize);
         return KeepJSONResult.ok(allVideos);
 
     }
@@ -250,5 +276,88 @@ public class VideoController {
     public KeepJSONResult userUnLike(String userId, String videoId, String videoCreaterId) {
         videoService.userUnLikeVideo(userId, videoId, videoCreaterId);
         return KeepJSONResult.ok();
+    }
+
+    /**
+     * @Description: 我收藏(点赞)过的视频列表
+     */
+    @PostMapping("/showMyLike")
+    public KeepJSONResult showMyLike(String userId, Integer page, Integer pageSize) throws Exception {
+
+        if (StringUtils.isBlank(userId)) {
+            return KeepJSONResult.ok();
+        }
+
+        if (page == null) {
+            page = 1;
+        }
+
+        if (pageSize == null) {
+            pageSize = Const.PAGE_SIZE;
+        }
+
+        PagedResult videosList = videoService.queryMyLikeVideos(userId, page, pageSize);
+
+        return KeepJSONResult.ok(videosList);
+    }
+
+
+    /**
+     * @Description: 我关注的人发的视频
+     */
+    @PostMapping("/showMyFollow")
+    public KeepJSONResult showMyFollow(String userId, Integer page) throws Exception {
+
+        if (StringUtils.isBlank(userId)) {
+            return KeepJSONResult.ok();
+        }
+
+        if (page == null) {
+            page = 1;
+        }
+
+        int pageSize = Const.PAGE_SIZE;
+
+        PagedResult videosList = videoService.queryMyFollowVideos(userId, page, pageSize);
+
+        return KeepJSONResult.ok(videosList);
+    }
+
+    /**
+     * 视频留言和回复
+     */
+    @PostMapping("/saveComment")
+    public KeepJSONResult saveComment(@RequestBody Comments comments, String fatherCommentId, String toUserId) {
+
+        if (StringUtils.isBlank(fatherCommentId) || StringUtils.isBlank(toUserId)) {
+            return KeepJSONResult.errorMsg("参数为空........");
+        }
+        comments.setFatherCommentId(fatherCommentId);
+        comments.setToUserId(toUserId);
+
+        videoService.saveComment(comments);
+
+        return KeepJSONResult.ok("留言成功");
+
+    }
+
+    //视频留言分页显示
+    @PostMapping("/getVideoComments")
+    public KeepJSONResult getVideoComments(String videoId, Integer page, Integer pageSize) {
+
+        if (StringUtils.isBlank(videoId)) {
+            return KeepJSONResult.errorMsg("视频为空....");
+        }
+
+        if (page == null) {
+            page = 1;
+        }
+        if (pageSize == null) {
+            pageSize = 10;
+        }
+
+        PagedResult allComments = videoService.getAllComments(videoId, page, pageSize);
+
+        return KeepJSONResult.ok(allComments);
     }
 }

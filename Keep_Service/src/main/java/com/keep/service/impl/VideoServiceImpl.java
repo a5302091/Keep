@@ -2,14 +2,13 @@ package com.keep.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.keep.Vo.CommentsVO;
 import com.keep.Vo.VideosVo;
 import com.keep.mapper.*;
-import com.keep.pojo.SearchRecords;
-import com.keep.pojo.Users;
-import com.keep.pojo.UsersLikeVideos;
-import com.keep.pojo.Videos;
+import com.keep.pojo.*;
 import com.keep.service.VideoService;
 import com.keep.utils.PagedResult;
+import com.keep.utils.TimeAgoUtils;
 import org.n3r.idworker.Sid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import tk.mybatis.mapper.entity.Example;
 
+import java.util.Date;
 import java.util.List;
 
 
@@ -31,6 +31,12 @@ public class VideoServiceImpl implements VideoService {
     private VideosMapper videoMapper;
 
     @Autowired
+    private CommentsMapper commentsMapper;
+
+    @Autowired
+    private CommentsMapperCustomer commentsMapperCustomer;
+
+    @Autowired
     private VideosMapperCustom videosMapperCustom;
 
     @Autowired
@@ -38,6 +44,7 @@ public class VideoServiceImpl implements VideoService {
 
     @Autowired
     private UsersLikeVideosMapper usersLikeVideosMapper;
+
 
     @Autowired
     private UsersMapper usersMapper;
@@ -66,10 +73,14 @@ public class VideoServiceImpl implements VideoService {
         videoMapper.updateByPrimaryKeySelective(videos);
     }
 
+    //根据用户id查询他发布的视频
+
+
     //分页查询视频列表
     @Transactional(propagation = Propagation.REQUIRED)
     @Override
-    public PagedResult getAllVideos(Videos video, Integer isSaveRecord, Integer page, Integer pageSize) {
+    public PagedResult getAllVideos(Videos video, Integer isSaveRecord,
+                                    Integer page, Integer pageSize) {
 
         // 保存热搜词
         String desc = video.getVideoDesc();
@@ -83,15 +94,16 @@ public class VideoServiceImpl implements VideoService {
         }
 
         PageHelper.startPage(page, pageSize);
-        List<VideosVo> list = videosMapperCustom.queryAllVideos(desc);
+        List<VideosVo> list = videosMapperCustom.queryAllVideos(desc, userId);
 
-        PageInfo<VideosVo> pageInfo = new PageInfo(list);
+        PageInfo<VideosVo> pageList = new PageInfo<>(list);
 
         PagedResult pagedResult = new PagedResult();
         pagedResult.setPage(page);
-        pagedResult.setTotal(pageInfo.getPages());
+        pagedResult.setTotal(pageList.getPages());
         pagedResult.setRows(list);
-        pagedResult.setRecords(pageInfo.getTotal());
+        pagedResult.setRecords(pageList.getTotal());
+
         return pagedResult;
     }
 
@@ -143,7 +155,96 @@ public class VideoServiceImpl implements VideoService {
 
     }
 
+    //查询我点赞过的视频
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public PagedResult queryMyLikeVideos(String userId, Integer page, Integer pageSize) {
+        PageHelper.startPage(page, pageSize);
+        List<VideosVo> list = videosMapperCustom.queryMyLikeVideos(userId);
 
+        PageInfo<VideosVo> pageList = new PageInfo<>(list);
+
+        PagedResult pagedResult = new PagedResult();
+        pagedResult.setTotal(pageList.getPages());
+        pagedResult.setRows(list);
+        pagedResult.setPage(page);
+        pagedResult.setRecords(pageList.getTotal());
+
+        return pagedResult;
+    }
+
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public PagedResult queryMyFollowVideos(String userId, Integer page, Integer pageSize) {
+        PageHelper.startPage(page, pageSize);
+        List<VideosVo> list = videosMapperCustom.queryMyFollowVideos(userId);
+
+        PageInfo<VideosVo> pageList = new PageInfo<>(list);
+
+        PagedResult pagedResult = new PagedResult();
+        pagedResult.setTotal(pageList.getPages());
+        pagedResult.setRows(list);
+        pagedResult.setPage(page);
+        pagedResult.setRecords(pageList.getTotal());
+
+        return pagedResult;
+    }
+
+    //根据用户Id查询发布的视频作品
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public PagedResult queryUserIdVideo(String userId, Integer page, Integer pageSize) {
+
+        PageHelper.startPage(page, pageSize);
+        List<VideosVo> list = videosMapperCustom.queryUserIdVideo(userId);
+
+        PageInfo<VideosVo> pageList = new PageInfo<>(list);
+
+        PagedResult pagedResult = new PagedResult();
+        pagedResult.setPage(page);
+        pagedResult.setTotal(pageList.getPages());
+        pagedResult.setRows(list);
+        pagedResult.setRecords(pageList.getTotal());
+
+        return pagedResult;
+    }
+
+    //视频留言
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public void saveComment(Comments comments) {
+
+        String id = sid.nextShort();
+        comments.setId(id);
+        comments.setCreateTime(new Date());
+
+        commentsMapper.insert(comments);
+
+    }
+
+    //分页查询视频留言
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public PagedResult getAllComments(String videoId, Integer page, Integer pageSize) {
+
+        PageHelper.startPage(page, pageSize);
+
+        List<CommentsVO> list = commentsMapperCustomer.queryComments(videoId);
+        for (CommentsVO c : list) {
+            String format = TimeAgoUtils.format(c.getCreateTime());
+            c.setTimeAgoStr(format);
+        }
+
+        PageInfo<CommentsVO> pageInfo = new PageInfo<>(list);
+
+        PagedResult pagedResult = new PagedResult();
+        pagedResult.setTotal(pageInfo.getPages());
+        pagedResult.setRows(list);
+        pagedResult.setPage(page);
+        pagedResult.setRecords(pageInfo.getTotal());
+
+        return pagedResult;
+    }
 
 
 }

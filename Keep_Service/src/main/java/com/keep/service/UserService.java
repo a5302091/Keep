@@ -1,6 +1,7 @@
 package com.keep.service;
 
 import com.keep.pojo.Users;
+import com.keep.pojo.UsersReport;
 import com.keep.utils.KeepJSONResult;
 
 /**
@@ -36,4 +37,7 @@ public interface UserService {
 
     //当前登录用户是否关注该视频作者
     public boolean queryIfFollow(String userId, String fanId);
+
+    //举报视频
+    public void reportUser(UsersReport usersReport);
 }

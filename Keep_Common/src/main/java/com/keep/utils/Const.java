@@ -14,4 +14,7 @@ public class Const {
     //ffmpage所在地址
     public static final String FLEX_EXE="E:\\ffmpeg\\bin\\ffmpeg.exe";
 
+    // 每页分页的记录数
+    public static final Integer PAGE_SIZE = 1000;
+
 }

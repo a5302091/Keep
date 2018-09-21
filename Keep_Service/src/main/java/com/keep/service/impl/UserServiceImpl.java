@@ -3,9 +3,11 @@ package com.keep.service.impl;
 import com.keep.mapper.UsersFansMapper;
 import com.keep.mapper.UsersLikeVideosMapper;
 import com.keep.mapper.UsersMapper;
+import com.keep.mapper.UsersReportMapper;
 import com.keep.pojo.Users;
 import com.keep.pojo.UsersFans;
 import com.keep.pojo.UsersLikeVideos;
+import com.keep.pojo.UsersReport;
 import com.keep.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -31,6 +34,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UsersFansMapper usersFansMapper;
+
+    @Autowired
+    private UsersReportMapper usersReportMapper;
 
     @Autowired
     private Sid sid;
@@ -160,7 +166,18 @@ public class UserServiceImpl implements UserService {
         if (usersFanses != null && !usersFanses.isEmpty() && usersFanses.size() > 0) {
             return true;
         }
-             return false;
+        return false;
+    }
+
+    //举报视频
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public void reportUser(UsersReport usersReport) {
+        String s = sid.nextShort();
+        usersReport.setId(s);
+        usersReport.setCreateDate(new Date());
+
+        usersReportMapper.insert(usersReport);
     }
 
 }
